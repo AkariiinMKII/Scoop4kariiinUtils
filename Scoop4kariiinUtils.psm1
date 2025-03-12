@@ -101,7 +101,7 @@ function Remove-ProfileContent {
     if (-not(Test-Path $PROFILE)) { return }
 
     try {
-        $RawProfile = Get-Content -Path $PROFILE -raw
+        $RawProfile = Get-Content -Path $PROFILE -Encoding UTF8 -Raw
 
         if ($null -eq $RawProfile) { return }
 
