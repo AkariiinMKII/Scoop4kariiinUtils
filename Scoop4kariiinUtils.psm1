@@ -98,7 +98,7 @@ function Remove-ProfileContent {
         [string] $Content
     )
 
-    if (-not(Test-Path $PROFILE)) { return }
+    if (-not (Test-Path $PROFILE)) { return }
 
     try {
         $RawProfile = Get-Content -Path $PROFILE -Encoding UTF8 -Raw
@@ -147,7 +147,7 @@ function Mount-ExternalRuntimeData {
         [switch] $LocalAppData
     )
 
-    if (-not($Target -or $AppData -or $LocalAppData)) {
+    if (-not ($Target -or $AppData -or $LocalAppData)) {
         Write-Host "`n[ERROR] Specify a mount point." -ForegroundColor Red
         return
     }
@@ -166,7 +166,7 @@ function Mount-ExternalRuntimeData {
             $Target = Join-Path -Path $RuntimeParent -ChildPath $FolderName
         }
 
-        if (-not(Test-Path $Source)) {
+        if (-not (Test-Path $Source)) {
             Write-Host "`nInitializing persist folder..." -ForegroundColor Yellow
             New-Item -Path $Source -ItemType Directory -Force | Out-Null
             if (Test-Path $Target) {
@@ -291,7 +291,7 @@ function Import-PersistItem {
         $SourcePath = Join-Path -Path $ScoopPersistDir -ChildPath $SourceApp
         $TargetPath = $PersistDir
 
-        if (-not(Test-Path $SourcePath)) { return }
+        if (-not (Test-Path $SourcePath)) { return }
 
         if (Test-Path $TargetPath) {
             switch ($ConflictAction) {
@@ -321,7 +321,7 @@ function Import-PersistItem {
 
         Write-Host "`nImporting profiles from `'$SourceApp`'..." -ForegroundColor Yellow
 
-        if (-not(Test-Path $TargetPath)) {
+        if (-not (Test-Path $TargetPath)) {
             New-Item -Path $TargetPath -ItemType Directory -Force | Out-Null
         }
 
@@ -466,7 +466,7 @@ function Backup-PersistItem {
             $ItemPath = Join-Path -Path $AppDir -ChildPath $Item
             $PersistItemPath = Join-Path -Path $PersistDir -ChildPath $Item
 
-            if (-not(Test-Path $ItemPath)) { continue }
+            if (-not (Test-Path $ItemPath)) { continue }
 
             if (Test-Path $PersistItemPath) {
                 Remove-Item -Path $PersistItemPath -Force -Recurse -ErrorAction Stop
@@ -517,7 +517,7 @@ function Import-SelectItem {
         $SourceItem = Join-Path -Path $SourceLocation -ChildPath $Name
         $TargetItem = Join-Path -Path $TargetLocation -ChildPath $Name
 
-        if (-not(Test-Path $SourceItem)) { return }
+        if (-not (Test-Path $SourceItem)) { return }
 
         if (Test-Path $TargetItem) {
             if ($Overwrite) {
@@ -549,7 +549,7 @@ function Backup-SelectItem {
         [string] $Path
     )
 
-    if (-not(Test-Path $Path)) { return }
+    if (-not (Test-Path $Path)) { return }
 
     try {
         $ItemName = Split-Path -Path $Path -Leaf
