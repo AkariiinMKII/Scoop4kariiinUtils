@@ -233,7 +233,7 @@ function Dismount-ExternalRuntimeData {
         if (Test-Path $Target) {
             Remove-Item $Target -Force -Recurse -ErrorAction Stop
         } else {
-            Write-Host "`n[ERROR] Invalid target, continue without dismounting." -ForegroundColor Red -NoNewline
+            Write-Host "`n[ERROR] Invalid target, continue without dismounting..." -ForegroundColor Red -NoNewline
         }
     } catch {
         Write-Host "`n[ERROR] Failed to dismount runtime cache: $_" -ForegroundColor Red -NoNewline
