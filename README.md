@@ -12,6 +12,7 @@ _Scoop4kariiinUtils is a PowerShell Script Module for [Scoop](https://github.com
 - [Import-PersistItem](#import-persistitem)
 - [New-PersistItem](#new-persistitem)
 - [Backup-PersistItem](#backup-persistitem)
+- [Restore-PersistItem](#restore-persistitem)
 
 ----
 
@@ -132,6 +133,20 @@ _Backup items to persist directory._
 
 ----
 
+### `Restore-PersistItem`
+
+_Restore items from persist directory._
+
+|Parameters|Type|Mandatory|Descriptions|
+|----|:----:|:----:|----|
+|`AppDir`|String|&check;|Path of app directory. Use `$dir` here.|
+|`PersistDir`|String|&check;|Path of persist directory. Use `$persist_dir` here.|
+|`Name`|String Array|&check;|Name of item to restore. Use `,` to separate multiple values.|
+
+- See [BaiduNetdisk manifest](https://github.com/AkariiinMKII/Scoop4kariiin/blob/main/bucket/BaiduNetdisk.json) for example.
+
+----
+
 ## Use in manifests
 
 ```json
@@ -139,7 +154,7 @@ _Backup items to persist directory._
     // Add depends property in app manifest
     "depends": "Scoop4kariiin/Scoop4kariiinUtils",
 
-    // Use Scoop4kariiinUtils in installer|pre_installer|post_installer scripts
+    // Use Scoop4kariiinUtils in (un)installation scripts
     "installer": {
         "script": [
             // Import PowerShell Module
