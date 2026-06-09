@@ -463,19 +463,45 @@ function Backup-PersistItem {
         $ItemArray = $Name
 
         foreach ($Item in $ItemArray) {
-            $ItemPath = Join-Path -Path $AppDir -ChildPath $Item
-            $PersistItemPath = Join-Path -Path $PersistDir -ChildPath $Item
-
-            if (-not (Test-Path $ItemPath)) { continue }
-
-            if (Test-Path $PersistItemPath) {
-                Remove-Item -Path $PersistItemPath -Force -Recurse -ErrorAction Stop
-            }
-
-            Copy-Item -Path $ItemPath -Destination $PersistDir -Force -Recurse -ErrorAction Stop
+            Import-SelectItem -SourceLocation $AppDir -TargetLocation $PersistDir -Name $Item -Overwrite
         }
     } catch {
         Write-Host "`n[ERROR] Failed to backup persist item: $_" -ForegroundColor Red -NoNewline
+    }
+}
+
+function Restore-PersistItem {
+    <#
+    .SYNOPSIS
+        Restore items from persist directory.
+
+    .PARAMETER AppDir
+        Path of app directory.
+
+    .PARAMETER PersistDir
+        Path of persist directory.
+
+    .PARAMETER Name
+        Name of items to restore.
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true, Position = 0)]
+        [string] $AppDir,
+        [Parameter(Mandatory = $true, Position = 1)]
+        [string] $PersistDir,
+        [Parameter(Mandatory = $true, Position = 2)]
+        [string[]] $Name
+    )
+
+    try {
+        $ItemArray = $Name
+
+        foreach ($Item in $ItemArray) {
+            Import-SelectItem -SourceLocation $PersistDir -TargetLocation $AppDir -Name $Item -Overwrite -Backup
+        }
+    } catch {
+        Write-Host "`n[ERROR] Failed to restore persist item: $_" -ForegroundColor Red -NoNewline
     }
 }
 
@@ -531,7 +557,7 @@ function Import-SelectItem {
 
         Copy-Item -Path $SourceItem -Destination $TargetLocation -Force -Recurse -ErrorAction Stop
     } catch {
-        Write-Host "`n[ERROR] Failed to import item: $_" -ForegroundColor Red -NoNewline
+        Write-Host "`n[ERROR] Failed to copy item: $_" -ForegroundColor Red -NoNewline
     }
 }
 
