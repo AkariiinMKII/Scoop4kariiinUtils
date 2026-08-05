@@ -157,6 +157,8 @@ _Restore items from persist directory._
     // Use Scoop4kariiinUtils in (un)installation scripts
     "installer": {
         "script": [
+            // Print a blank line to avoid output mess, this is not necessary, but makes the output more readable.
+            "Write-Host \"\""
             // Import PowerShell Module
             "Import-Module -Name Scoop4kariiinUtils -ErrorAction Stop",
             // Call functions in Scoop4kariiinUtils, for example:
