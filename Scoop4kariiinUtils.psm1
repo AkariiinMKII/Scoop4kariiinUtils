@@ -195,7 +195,9 @@ function Mount-ExternalRuntimeData {
         [switch] $LocalAppData
     )
 
-    Write-Host "Mounting runtime cache..." -NoNewline
+    $FolderName = Split-Path -Path $Source -Leaf
+
+    Write-Host "Mounting environment directory `'$FolderName`'..." -NoNewline
 
     if (-not ($Target -or $AppData -or $LocalAppData)) {
         Write-Host "failed." -ForegroundColor Red
@@ -207,10 +209,7 @@ function Mount-ExternalRuntimeData {
 
     if ($LocalAppData) { $RuntimeParent = $env:LOCALAPPDATA }
 
-    if ($RuntimeParent) {
-        $FolderName = Split-Path -Path $Source -Leaf
-        $Target = Join-Path -Path $RuntimeParent -ChildPath $FolderName
-    }
+    if ($RuntimeParent) { $Target = Join-Path -Path $RuntimeParent -ChildPath $FolderName }
 
     if (-not (Test-Path $Source)) {
         try {
@@ -280,16 +279,15 @@ function Dismount-ExternalRuntimeData {
         [switch] $LocalAppData
     )
 
-    Write-Host "Dismounting runtime cache..." -NoNewline
+    $FolderName = Split-Path -Path $Target -Leaf
+
+    Write-Host "Dismounting environment directory `'$FolderName`'..." -NoNewline
 
     if ($AppData) { $RuntimeParent = $env:APPDATA }
 
     if ($LocalAppData) { $RuntimeParent = $env:LOCALAPPDATA }
 
-    if ($RuntimeParent) {
-        $FolderName = Split-Path -Path $Target -Leaf
-        $Target = Join-Path -Path $RuntimeParent -ChildPath $FolderName
-    }
+    if ($RuntimeParent) { $Target = Join-Path -Path $RuntimeParent -ChildPath $FolderName }
 
     if (Test-Path $Target) {
         try {
@@ -300,8 +298,8 @@ function Dismount-ExternalRuntimeData {
             Write-Host "ERROR  $($_.Exception.Message)" -ForegroundColor DarkRed
         }
     } else {
-        Write-Host "abort." -ForegroundColor Yellow
-        Write-Host "INFO  Target not found, continue without dismounting..." -ForegroundColor DarkGray
+        Write-Host "skip." -ForegroundColor Yellow
+        Write-Host "INFO  Target item not found." -ForegroundColor DarkGray
     }
 }
 
@@ -350,7 +348,7 @@ function Import-PersistItem {
 
     if (-not (Test-Path $SourcePath)) { return }
 
-    Write-Host "Importing profiles from `'$SourceApp`' installed by scoop..." -NoNewline
+    Write-Host "Importing profiles from `'$SourceApp`'..." -NoNewline
 
     $SupportedConfAct = @("ReplaceDir", "Overwrite", "Mix", "Skip")
 
@@ -364,8 +362,8 @@ function Import-PersistItem {
         switch ($ConflictAction) {
             "ReplaceDir" {
                 if ($Backup) {
-                    $LastBackupExit = Backup-SelectItem -Path $TargetPath
-                    if (0 -ne $LastBackupExit) { return }
+                    $LastBackupSuccess = Backup-SelectItem -Path $TargetPath
+                    if (-not $LastBackupSuccess) { return }
                 } else {
                     try {
                         Remove-Item -Path $TargetPath -Force -Recurse -ErrorAction Stop
@@ -378,13 +376,13 @@ function Import-PersistItem {
             }
             "Skip" {
                 Write-Host "abort." -ForegroundColor Yellow
-                Write-Host "INFO  Target already exists, skipping import." -ForegroundColor DarkGray
+                Write-Host "INFO  Target item already exists." -ForegroundColor DarkGray
                 return
             }
             default {
                 if ($Sync) {
                     Write-Host "abort." -ForegroundColor Yellow
-                    Write-Host "INFO  Target already exists, skipping import." -ForegroundColor DarkGray
+                    Write-Host "INFO  Target item already exists." -ForegroundColor DarkGray
                     Write-Host "WARN  Conflict action $ConflictAction won't work in sync mode." -ForegroundColor DarkYellow
                     return
                 }
@@ -427,9 +425,7 @@ function Import-PersistItem {
         return
     }
 
-    $allSucceeded = $true
-
-    $LastImportExit = 0
+    $AllImportSuccess = $true
 
     $baseArgs = @{
         SourceLocation = $SourcePath
@@ -443,11 +439,11 @@ function Import-PersistItem {
     foreach ($SelectItem in $SelectArray) {
         Write-Host "Importing item `'$SelectItem`'..." -NoNewline
         $importArgs = $baseArgs + @{ Name = $SelectItem }
-        $LastImportExit = Import-SelectItem @importArgs
-        if (0 -ne $LastImportExit) { $allSucceeded = $false }
+        $LastImportSuccess = Import-SelectItem @importArgs
+        if (-not $LastImportSuccess) { $AllImportSuccess = $false }
     }
 
-    if ($allSucceeded) {
+    if ($AllImportSuccess) {
         Write-Host "success." -ForegroundColor Green
         Write-Host "INFO  You can uninstall `'$SourceApp`' now." -ForegroundColor DarkGray
     } else {
@@ -516,8 +512,8 @@ function New-PersistItem {
         if (Test-Path $PersistItemPath) {
             if ($Force) {
                 if ($Backup) {
-                    $LastBackupExit = Backup-SelectItem -Path $PersistItemPath
-                    if (0 -ne $LastBackupExit) { continue }
+                    $LastBackupSuccess = Backup-SelectItem -Path $PersistItemPath
+                    if (-not $LastBackupSuccess) { continue }
                 } else {
                     try {
                         Remove-Item -Path $PersistItemPath -Force -Recurse -ErrorAction Stop
@@ -528,8 +524,8 @@ function New-PersistItem {
                     }
                 }
             } else {
-                Write-Host "abort." -ForegroundColor Yellow
-                Write-Host "INFO  Item already exists, skipping creation." -ForegroundColor DarkGray
+                Write-Host "skip." -ForegroundColor Yellow
+                Write-Host "INFO  Item already exists." -ForegroundColor DarkGray
                 continue
             }
         }
@@ -585,19 +581,17 @@ function Backup-PersistItem {
 
     $ItemArray = $Name
 
-    $allSucceeded = $true
-
-    $LastImportExit = 0
+    $AllImportSuccess = $true
 
     Write-Host ""
 
     foreach ($Item in $ItemArray) {
         Write-Host "`nBacking up `'$Item`'..." -NoNewline
-        $LastImportExit = Import-SelectItem -SourceLocation $AppDir -TargetLocation $PersistDir -Name $Item -Overwrite
-        if (0 -ne $LastImportExit) { $allSucceeded = $false }
+        $LastImportSuccess = Import-SelectItem -SourceLocation $AppDir -TargetLocation $PersistDir -Name $Item -Overwrite
+        if (-not $LastImportSuccess) { $AllImportSuccess = $false }
     }
 
-    if ($allSucceeded) {
+    if ($AllImportSuccess) {
         Write-Host "success." -ForegroundColor Green
     } else {
         Write-Host "WARN  Some items failed to backup." -ForegroundColor DarkYellow   
@@ -632,19 +626,17 @@ function Restore-PersistItem {
 
     $ItemArray = $Name
 
-    $allSucceeded = $true
-
-    $LastImportExit = 0
+    $AllImportSuccess = $true
 
     Write-Host ""
 
     foreach ($Item in $ItemArray) {
         Write-Host "`nRestoring `'$Item`'..." -NoNewline
-        $LastImportExit = Import-SelectItem -SourceLocation $PersistDir -TargetLocation $AppDir -Name $Item -Overwrite -Backup
-        if (0 -ne $LastImportExit) { $allSucceeded = $false }
+        $LastImportSuccess = Import-SelectItem -SourceLocation $PersistDir -TargetLocation $AppDir -Name $Item -Overwrite -Backup
+        if (-not $LastImportSuccess) { $AllImportSuccess = $false }
     }
 
-    if ($allSucceeded) {
+    if ($AllImportSuccess) {
         Write-Host "success." -ForegroundColor Green
     } else {
         Write-Host "WARN  Some items failed to restore." -ForegroundColor DarkYellow   
@@ -689,40 +681,40 @@ function Import-SelectItem {
     $TargetItem = Join-Path -Path $TargetLocation -ChildPath $Name
 
     if (-not (Test-Path $SourceItem)) {
-        Write-Host "abort." -ForegroundColor Yellow
-        Write-Host "INFO  Source item not found, skipping import." -ForegroundColor DarkGray
-        return 0
+        Write-Host "skip." -ForegroundColor Yellow
+        Write-Host "INFO  Source item not found." -ForegroundColor DarkGray
+        return $true
     }
 
     if (Test-Path $TargetItem) {
         if ($Overwrite) {
             if ($Backup) {
-                $LastBackupExit = Backup-SelectItem -Path $TargetItem
-                if (0 -ne $LastBackupExit) { return 1 }
+                $LastBackupSuccess = Backup-SelectItem -Path $TargetItem
+                if (-not $LastBackupSuccess) { return $false }
             } else {
                 try {
                     Remove-Item $TargetItem -Force -Recurse -ErrorAction Stop
                 } catch {
                     Write-Host "failed." -ForegroundColor Red
                     Write-Host "ERROR  $($_.Exception.Message)" -ForegroundColor DarkRed
-                    return 1
+                    return $false
                 }
             }
         } else {
-            Write-Host "abort." -ForegroundColor Yellow
-            Write-Host "INFO  Target item already exists, skipping import." -ForegroundColor DarkGray
-            return 0
+            Write-Host "skip." -ForegroundColor Yellow
+            Write-Host "INFO  Target item already exists." -ForegroundColor DarkGray
+            return $true
         }
     }
 
     try {
         Copy-Item -Path $SourceItem -Destination $TargetLocation -Force -Recurse -ErrorAction Stop
         Write-Host "done." -ForegroundColor Green
-        return 0
+        return $true
     } catch {
         Write-Host "failed." -ForegroundColor Red
         Write-Host "ERROR  $($_.Exception.Message)" -ForegroundColor DarkRed
-        return 1
+        return $false
     }
 }
 
@@ -741,9 +733,9 @@ function Backup-SelectItem {
     )
 
     if (-not (Test-Path $Path)) {
-        Write-Host "abort." -ForegroundColor Yellow
-        Write-Host "INFO  Item not found, skipping backup." -ForegroundColor DarkGray
-        return 0
+        Write-Host "skip." -ForegroundColor Yellow
+        Write-Host "INFO  Item not found." -ForegroundColor DarkGray
+        return $true
     }
 
     $ItemName = Split-Path -Path $Path -Leaf
@@ -757,17 +749,17 @@ function Backup-SelectItem {
         } catch {
             Write-Host "failed." -ForegroundColor Red
             Write-Host "ERROR  $($_.Exception.Message)" -ForegroundColor DarkRed
-            return 1
+            return $false
         }
     }
 
     try {
         Rename-Item -Path $Path -NewName $BackupItemName -Force -ErrorAction Stop
         Write-Host "done." -ForegroundColor Green
-        return 0
+        return $true
     } catch {
         Write-Host "failed." -ForegroundColor Red
         Write-Host "ERROR  $($_.Exception.Message)" -ForegroundColor DarkRed
-        return 1
+        return $false
     }
 }
