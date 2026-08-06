@@ -225,6 +225,7 @@ function Mount-ExternalRuntimeData {
             try {
                 Get-ChildItem $Target -ErrorAction Stop | Copy-Item -Destination $Source -Force -Recurse -ErrorAction Stop
                 Write-Host "done." -ForegroundColor Green
+                Write-Host "Continue mounting..." -NoNewline
             } catch {
                 Write-Host "failed." -ForegroundColor Red
                 Write-Host "ERROR  $($_.Exception.Message)" -ForegroundColor DarkRed
@@ -383,7 +384,7 @@ function Import-PersistItem {
                 if ($Sync) {
                     Write-Host "abort." -ForegroundColor Yellow
                     Write-Host "INFO  Target item already exists." -ForegroundColor DarkGray
-                    Write-Host "WARN  Conflict action $ConflictAction won't work in sync mode." -ForegroundColor DarkYellow
+                    Write-Host "WARN  Conflict action `'$ConflictAction`' won't work in sync mode." -ForegroundColor DarkYellow
                     return
                 }
             }
@@ -391,9 +392,10 @@ function Import-PersistItem {
     }
 
     if ($Sync) {
-        Write-Host "using sync mode..."
+        Write-Host "`nSync mode: " -NoNewline
         Mount-ExternalRuntimeData -Source $SourcePath -Target $TargetPath
-        Write-Host "WARN  Do not permanently uninstall `'$SourceApp`'!" -ForegroundColor DarkYellow
+        Write-Host "WARN  DO NOT uninstall `'$SourceApp`' when using sync mode." -ForegroundColor DarkYellow
+        Write-Host "WARN  Or you will lose persisted data for this app." -ForegroundColor DarkYellow
         return
     }
 
@@ -444,10 +446,10 @@ function Import-PersistItem {
     }
 
     if ($AllImportSuccess) {
-        Write-Host "success." -ForegroundColor Green
         Write-Host "INFO  You can uninstall `'$SourceApp`' now." -ForegroundColor DarkGray
     } else {
-        Write-Host "WARN  Some items failed to import." -ForegroundColor DarkYellow   
+        Write-Host "WARN  Some items failed to import." -ForegroundColor DarkYellow
+        Write-Host "WARN  Try manually copying failed items, then force update this app." -ForegroundColor DarkYellow
     }
 }
 
@@ -503,6 +505,8 @@ function New-PersistItem {
     }
 
     $ItemArray = $Name
+
+    Write-Host ""
 
     foreach ($Item in $ItemArray) {
         $PersistItemPath = Join-Path -Path $PersistDir -ChildPath $Item
@@ -577,24 +581,20 @@ function Backup-PersistItem {
         [string[]] $Name
     )
 
-    Write-Host "Backing up items to persist directory..." -NoNewline
+    Write-Host "Backing up items to persist directory..."
 
     $ItemArray = $Name
 
     $AllImportSuccess = $true
 
-    Write-Host ""
-
     foreach ($Item in $ItemArray) {
-        Write-Host "`nBacking up `'$Item`'..." -NoNewline
+        Write-Host "Backing up `'$Item`'..." -NoNewline
         $LastImportSuccess = Import-SelectItem -SourceLocation $AppDir -TargetLocation $PersistDir -Name $Item -Overwrite
         if (-not $LastImportSuccess) { $AllImportSuccess = $false }
     }
 
-    if ($AllImportSuccess) {
-        Write-Host "success." -ForegroundColor Green
-    } else {
-        Write-Host "WARN  Some items failed to backup." -ForegroundColor DarkYellow   
+    if (-not $AllImportSuccess) {
+        Write-Host "WARN  Some items failed to backup." -ForegroundColor DarkYellow
     }
 }
 
@@ -622,24 +622,20 @@ function Restore-PersistItem {
         [string[]] $Name
     )
 
-    Write-Host "Restoring items from persist directory..." -NoNewline
+    Write-Host "Restoring items from persist directory..."
 
     $ItemArray = $Name
 
     $AllImportSuccess = $true
 
-    Write-Host ""
-
     foreach ($Item in $ItemArray) {
-        Write-Host "`nRestoring `'$Item`'..." -NoNewline
+        Write-Host "Restoring `'$Item`'..." -NoNewline
         $LastImportSuccess = Import-SelectItem -SourceLocation $PersistDir -TargetLocation $AppDir -Name $Item -Overwrite -Backup
         if (-not $LastImportSuccess) { $AllImportSuccess = $false }
     }
 
-    if ($AllImportSuccess) {
-        Write-Host "success." -ForegroundColor Green
-    } else {
-        Write-Host "WARN  Some items failed to restore." -ForegroundColor DarkYellow   
+    if (-not $AllImportSuccess) {
+        Write-Host "WARN  Some items failed to restore." -ForegroundColor DarkYellow
     }
 }
 
